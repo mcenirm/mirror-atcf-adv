@@ -71,14 +71,8 @@ if [ -d "$gitwt" ] ; then
   commit_changes_if_any pre
 fi
 
-echo === Before
-list_new_and_changed_files
-echo ===
 wget "${wget_opts[@]}" "$start_url"
-echo === After
 list_new_and_changed_files
-echo ===
-exit #####
 
 commit_changes_if_any post
-_git push -u origin master
+_git push -q origin master

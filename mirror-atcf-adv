@@ -1,0 +1,84 @@
+#!/bin/bash
+set -e
+set -u
+
+start_url='http://ftp.nhc.noaa.gov/atcf/adv/'
+name='atcf-adv-mirror'
+cache=${PWD}/cache
+logs=${PWD}/logs
+gitrepo=${cache}/${name}.git
+gitwt=${cache}/${start_url#*://}
+gitts=$(date -u +%FT%TZ)
+gitorigin="git@github.com:${USER}-forks/${name}.git"
+ts=$(date -u +%s-%F)
+
+wget_opts=(
+    # --no-config
+    --no-verbose
+    # --quiet
+
+    --directory-prefix="$cache"
+    --output-file="$logs/mirror-$ts"
+    # --rejected-log="$logs/rejected-$ts"
+
+    --force-directories
+    --timestamping
+    --recursive
+    --level=inf
+    --no-remove-listing
+    --no-parent
+
+    --reject-regex='\?.=.;.=.$'
+
+    --wait=0.1                  # wait SECONDS between retrievals
+    --quota=20m                 # set retrieval quota to NUMBER
+    # --limit-rate=RATE           limit download rate to RATE
+    # --unlink                    remove file before clobber
+    # --no-xattr                  turn off storage of metadata in extended file attributes
+)
+
+_git () {
+  git --git-dir="$gitrepo" --work-tree="$gitwt" "$@"
+}
+
+commit_changes_if_any () {
+  local message=( "$gitts" "$@" )
+  local changes=$(_git status --porcelain)
+  if [ -n "$changes" ] ; then
+    printf '%s\n' "$changes"
+    _git add .
+    _git commit -m "${message[*]}"
+  fi
+}
+
+list_new_and_changed_files () {
+  _git status --porcelain
+}
+
+
+mkdir -p "$cache" "$logs" "$gitwt"
+
+if [ ! -d "$gitrepo" ] ; then
+  git init --bare "$gitrepo"
+  _git commit --allow-empty -m 'Initial commit'
+fi
+if ! _git config --get remote.origin.url >/dev/null 2>/dev/null ; then
+  _git remote add origin "$gitorigin"
+  _git push -u origin master
+fi
+
+if [ -d "$gitwt" ] ; then
+  commit_changes_if_any pre
+fi
+
+echo === Before
+list_new_and_changed_files
+echo ===
+wget "${wget_opts[@]}" "$start_url"
+echo === After
+list_new_and_changed_files
+echo ===
+exit #####
+
+commit_changes_if_any post
+_git push -u origin master

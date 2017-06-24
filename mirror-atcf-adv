@@ -52,7 +52,7 @@ commit_changes_if_any () {
 }
 
 list_new_and_changed_files () {
-  _git status --porcelain
+  _git diff-tree --no-commit-id --name-only -r HEAD
 }
 
 

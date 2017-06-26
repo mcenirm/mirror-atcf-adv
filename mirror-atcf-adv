@@ -52,7 +52,7 @@ commit_changes_if_any () {
 }
 
 list_new_and_changed_files () {
-  _git diff-tree --no-commit-id --name-only -r HEAD
+  _git diff-tree --no-commit-id --name-status -r HEAD
 }
 
 
@@ -72,7 +72,7 @@ if [ -d "$gitwt" ] ; then
 fi
 
 wget "${wget_opts[@]}" "$start_url"
-list_new_and_changed_files
 
 commit_changes_if_any post
-_git push -q origin master
+list_new_and_changed_files
+_git push -q
